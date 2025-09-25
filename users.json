@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Deepa S",
+    "email": "deepa.2302031@srec.ac.in",
+    "password": "Srec@123",
+    "role": "junior",
+    "interests": [
+      "Digital Twin"
+    ],
+    "assignedMentors": [
+      "kannan.2302055@srec.ac.in",
+      "kannan.2302055@srec.ac.in"
+    ],
+    "assignedJuniors": []
+  },
+  {
+    "name": "Kannan C",
+    "email": "kannan.2302055@srec.ac.in",
+    "password": "Srec@123",
+    "role": "senior",
+    "interests": [
+      "Digital Twin"
+    ],
+    "assignedMentors": [],
+    "assignedJuniors": [
+      "deepa.2302031@srec.ac.in",
+      "deepa.2302031@srec.ac.in"
+    ]
+  }
+]

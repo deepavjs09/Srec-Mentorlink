@@ -11,6 +11,22 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^5.1.0"
+    "body-parser": "^2.2.0",
+    "dotenv": "^17.2.2",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "nodemailer": "^7.0.6",
+    "socket.io": "^4.8.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepavjs09/Srec-Mentorlink.git"
+  },
+  "bugs": {
+    "url": "https://github.com/deepavjs09/Srec-Mentorlink/issues"
+  },
+  "homepage": "https://github.com/deepavjs09/Srec-Mentorlink#readme",
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }

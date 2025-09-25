@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Feedback - Srec MentorLink</title>
+  <style>
+    body { font-family: Arial; display:flex; justify-content:center; align-items:center; height:100vh; background:#f4f4f4; }
+    .container { background:white; padding:30px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2); width:400px; }
+    input, textarea, select { width:100%; padding:10px; margin:10px 0; border-radius:5px; border:1px solid #ccc; }
+    button { width:100%; padding:10px; background:#007BFF; color:white; border:none; border-radius:5px; cursor:pointer; }
+    button:hover { background:#0056b3; }
+    h2 { text-align:center; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Feedback</h2>
+  <form action="/submit-feedback" method="POST">
+    <input type="hidden" name="seniorEmail" value="<%= seniorEmail %>">
+    <input type="hidden" name="juniorEmail" value="<%= juniorEmail %>">
+    
+    <label>Rating (1-5)</label>
+    <select name="rating" required>
+      <option value="">Select</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+    </select>
+
+    <label>Comments</label>
+    <textarea name="comments" placeholder="Your feedback..." rows="4" required></textarea>
+
+    <button type="submit">Submit Feedback</button>
+  </form>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - Srec MentorLink</title>
+  <style>
+    body { font-family: Arial; margin:0; background:#f4f4f4; }
+    header { background:#007BFF; color:white; padding:15px; text-align:center; }
+    .container { display:flex; max-width:1000px; margin:20px auto; }
+    .left, .right { background:white; padding:20px; border-radius:10px; margin:10px; }
+    .left { flex:1; }
+    .right { flex:2; }
+    select, input { padding:10px; width:100%; margin:10px 0; border-radius:5px; border:1px solid #ccc; }
+    button { padding:10px 20px; background:#007BFF; color:white; border:none; border-radius:5px; cursor:pointer; }
+    button:hover { background:#0056b3; }
+    h3 { margin-top:0; }
+    ul { list-style:none; padding:0; }
+    li { padding:5px 0; border-bottom:1px solid #eee; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>Welcome, <%= user.name %> (<%= user.role %>)</h2>
+</header>
+
+<div class="container">
+
+  <div class="left">
+    <h3>Select Area of Interest</h3>
+    <% if(user.role==='junior'){ %>
+      <form action="/select-interest" method="POST">
+        <input type="hidden" name="email" value="<%= user.email %>">
+        <select name="interest" required>
+          <option value="">Select Domain</option>
+          <option value="AI/ML">AI/ML</option>
+          <option value="Digital Twin">Digital Twin</option>
+          <option value="Antenna">Antenna</option>
+          <option value="IoT">IoT</option>
+          <option value="Embedded Systems">Embedded Systems</option>
+          <option value="Cyber Security">Cyber Security</option>
+          <option value="Cloud Computing">Cloud Computing</option>
+          <option value="Data Science">Data Science</option>
+          <option value="Robotics">Robotics</option>
+          <option value="Blockchain">Blockchain</option>
+        </select>
+        <button type="submit">Submit Interest</button>
+      </form>
+    <% } else if(user.role==='senior'){ %>
+      <h3>Edit Your Interests</h3>
+      <form action="/edit-interests" method="POST">
+        <input type="hidden" name="email" value="<%= user.email %>">
+        <input type="text" name="interests" value="<%= user.interests.join(', ') %>" placeholder="Enter Interests (comma-separated)">
+        <button type="submit">Save</button>
+      </form>
+    <% } %>
+  </div>
+
+  <div class="right">
+    <h3>Users in your domain</h3>
+    <ul>
+      <% users.forEach(u => { if(u.email !== user.email){ %>
+        <li>
+          <strong><%= u.name %></strong> (<%= u.role %>) <br>
+          Interests: <%= u.interests.join(', ') %> <br>
+          <% if(user.role==='junior' && u.role==='senior'){ %>
+            <a href="/chat?junior=<%= user.email %>&senior=<%= u.email %>">Chat</a>
+          <% } %>
+        </li>
+      <% }}) %>
+    </ul>
+  </div>
+
+</div>
+
+</body>
+</html>

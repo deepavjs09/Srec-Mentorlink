@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register - Srec MentorLink</title>
+  <style>
+    body { font-family: Arial; background: #f4f4f4; display:flex; justify-content:center; align-items:center; height:100vh; }
+    .container { background:white; padding:30px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2); width:400px; }
+    input, select { width:100%; padding:10px; margin:10px 0; border-radius:5px; border:1px solid #ccc; }
+    button { width:100%; padding:10px; background:#007BFF; color:white; border:none; border-radius:5px; cursor:pointer; }
+    button:hover { background:#0056b3; }
+    h2 { text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Register</h2>
+    <form action="/register" method="POST">
+      <input type="text" name="name" placeholder="Full Name" required>
+      <input type="email" name="email" placeholder="College Email (@srec.ac.in)" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <select name="role" id="role" onchange="toggleInterests()" required>
+        <option value="">Select Role</option>
+        <option value="junior">Junior</option>
+        <option value="senior">Senior (Mentor)</option>
+      </select>
+      <input type="text" name="interests" id="interests" placeholder="Enter Interests (comma-separated)" style="display:none;">
+      <button type="submit">Register</button>
+    </form>
+    <p style="text-align:center; margin-top:10px;">Already registered? <a href="/login">Login</a></p>
+  </div>
+
+  <script>
+    function toggleInterests(){
+      const role = document.getElementById('role').value;
+      const interests = document.getElementById('interests');
+      if(role==='senior'){
+        interests.style.display='block';
+      } else {
+        interests.style.display='none';
+      }
+    }
+  </script>
+</body>
+</html>

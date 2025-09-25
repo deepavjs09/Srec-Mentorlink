@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat - Srec MentorLink</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #007BFF;
+      color: white;
+      padding: 10px;
+      text-align: center;
+    }
+    #chatContainer {
+      display: flex;
+      flex-direction: column;
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #chatBox {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      background-color: #fafafa;
+    }
+    #chatBox p {
+      margin: 5px 0;
+    }
+    #msgContainer {
+      display: flex;
+    }
+    #msg {
+      flex: 1;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-right: 5px;
+    }
+    #sendBtn {
+      padding: 10px 20px;
+      border: none;
+      background-color: #007BFF;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #sendBtn:hover {
+      background-color: #0056b3;
+    }
+    #feedbackLink {
+      margin-top: 10px;
+      display: block;
+      text-align: right;
+    }
+    #feedbackLink a {
+      text-decoration: none;
+      color: #007BFF;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>Chat between <%= juniorEmail %> and <%= seniorEmail %></h2>
+</header>
+
+<div id="chatContainer">
+  <div id="chatBox"></div>
+
+  <div id="msgContainer">
+    <input type="text" id="msg" placeholder="Type your message here..." autocomplete="off"/>
+    <button id="sendBtn" onclick="sendMessage()">Send</button>
+  </div>
+
+  <div id="feedbackLink">
+    <a href="/feedback?senior=<%= seniorEmail %>&junior=<%= juniorEmail %>">Give Feedback</a>
+  </div>
+</div>
+
+<!-- Socket.io client -->
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+
+  const juniorEmail = "<%= juniorEmail %>";
+  const seniorEmail = "<%= seniorEmail %>";
+  const room = `${juniorEmail}-${seniorEmail}`;
+
+  const chatBox = document.getElementById('chatBox');
+  const msgInput = document.getElementById('msg');
+
+  // Join the room
+  socket.emit('joinRoom', room);
+
+  // Load existing messages from history
+  socket.on('loadMessages', messages => {
+    messages.forEach(m => addMessage(m.sender, m.message));
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+
+  // Receive new chat messages
+  socket.on('chatMessage', data => {
+    addMessage(data.sender, data.message);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+
+  // Send message
+  function sendMessage() {
+    const message = msgInput.value.trim();
+    if(message === "") return;
+    socket.emit('chatMessage', { room, sender: juniorEmail, message });
+    msgInput.value = "";
+  }
+
+  // Add message to chatBox
+  function addMessage(sender, message) {
+    const p = document.createElement('p');
+    p.innerHTML = `<strong>${sender}:</strong> ${message}`;
+    chatBox.appendChild(p);
+  }
+
+  // Optional: send message on Enter key
+  msgInput.addEventListener('keypress', function(e){
+    if(e.key === 'Enter') sendMessage();
+  });
+</script>
+
+</body>
+</html>
