@@ -19,42 +19,59 @@
   </style>
 </head>
 <body>
-  <header>
-    <h2>Welcome, <%= user.name %> (<%= user.role %>)</h2>
-  </header>
 
-  <div class="container">
-    <!-- Left: Select Interest -->
-    <div class="left">
-      <h3>Select Area of Interest</h3>
-      <form action="/set-interest" method="POST">
+<header>
+  <h2>Welcome, <%= user.name %> (<%= user.role %>)</h2>
+</header>
+
+<div class="container">
+
+  <div class="left">
+    <h3>Select Area of Interest</h3>
+    <% if(user.role==='junior'){ %>
+      <form action="/select-interest" method="POST">
+        <input type="hidden" name="email" value="<%= user.email %>">
         <select name="interest" required>
           <option value="">Select Domain</option>
-          <option value="AI">AI</option>
-          <option value="IoT">IoT</option>
+          <option value="AI/ML">AI/ML</option>
           <option value="Digital Twin">Digital Twin</option>
           <option value="Antenna">Antenna</option>
+          <option value="IoT">IoT</option>
+          <option value="Embedded Systems">Embedded Systems</option>
+          <option value="Cyber Security">Cyber Security</option>
+          <option value="Cloud Computing">Cloud Computing</option>
+          <option value="Data Science">Data Science</option>
+          <option value="Robotics">Robotics</option>
+          <option value="Blockchain">Blockchain</option>
         </select>
-        <input type="hidden" name="email" value="<%= user.email %>">
         <button type="submit">Submit Interest</button>
       </form>
-    </div>
-
-    <!-- Right: Users in domain -->
-    <div class="right">
-      <h3>Users in your domain</h3>
-      <ul>
-        <% matchedUsers.forEach(u => { %>
-          <li>
-            <strong><%= u.name %></strong> (<%= u.role %>)<br>
-            Interests: <%= u.interests.join(", ") %>
-            <% if (user.role === "junior" && u.role === "senior") { %>
-              <br><a href="/chat?junior=<%= user.email %>&senior=<%= u.email %>">Chat</a>
-            <% } %>
-          </li>
-        <% }) %>
-      </ul>
-    </div>
+    <% } else if(user.role==='senior'){ %>
+      <h3>Edit Your Interests</h3>
+      <form action="/edit-interests" method="POST">
+        <input type="hidden" name="email" value="<%= user.email %>">
+        <input type="text" name="interests" value="<%= user.interests.join(', ') %>" placeholder="Enter Interests (comma-separated)">
+        <button type="submit">Save</button>
+      </form>
+    <% } %>
   </div>
+
+  <div class="right">
+    <h3>Users in your domain</h3>
+    <ul>
+      <% users.forEach(u => { if(u.email !== user.email){ %>
+        <li>
+          <strong><%= u.name %></strong> (<%= u.role %>) <br>
+          Interests: <%= u.interests.join(', ') %> <br>
+          <% if(user.role==='junior' && u.role==='senior'){ %>
+            <a href="/chat?junior=<%= user.email %>&senior=<%= u.email %>">Chat</a>
+          <% } %>
+        </li>
+      <% }}) %>
+    </ul>
+  </div>
+
+</div>
+
 </body>
 </html>
