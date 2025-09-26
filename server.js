@@ -1,155 +1,159 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const fs = require('fs');
-const nodemailer = require('nodemailer');
-const path = require('path');
-const http = require('http');
-const { Server } = require('socket.io');
-require('dotenv').config();
+// server.js
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const bodyParser = require("body-parser");
+const nodemailer = require("nodemailer");
+const http = require("http");
+const socketIo = require("socket.io");
+require("dotenv").config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = socketIo(server);
 
-app.set('view engine', 'ejs');
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(bodyParser.json());
+app.use(express.static("public"));
 
-// ------------------ Data Storage ------------------ //
-const usersFile = path.join(__dirname, 'users.json');
-const messagesFile = path.join(__dirname, 'messages.json');
-const feedbackFile = path.join(__dirname, 'feedback.json');
+// ---------- Load users.json ----------
+const usersFile = path.join(__dirname, "users.json");
+function loadUsers() {
+  if (!fs.existsSync(usersFile)) return [];
+  return JSON.parse(fs.readFileSync(usersFile));
+}
+function saveUsers(users) {
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+}
 
-let users = [];
-let messages = [];
-let feedbacks = [];
-
-// Load data from files if exist
-if (fs.existsSync(usersFile)) users = JSON.parse(fs.readFileSync(usersFile));
-if (fs.existsSync(messagesFile)) messages = JSON.parse(fs.readFileSync(messagesFile));
-if (fs.existsSync(feedbackFile)) feedbacks = JSON.parse(fs.readFileSync(feedbackFile));
-
-// ------------------ Nodemailer ------------------ //
+// ---------- Email transporter ----------
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// ---------- Routes ----------
+
+// Home page
+app.get("/", (req, res) => {
+  res.send("Hello, Srec-Mentorlink is running 🚀");
+});
+
+// Dashboard (after login)
+app.get("/dashboard", (req, res) => {
+  const email = req.query.email;
+  if (!email) return res.send("Email required to login.");
+
+  let users = loadUsers();
+  let user = users.find((u) => u.email === email);
+
+  if (!user) {
+    // If user not found, create new junior by default
+    user = { name: email.split("@")[0], email, role: "junior", interests: [] };
+    users.push(user);
+    saveUsers(users);
   }
-});
 
-// ------------------ Routes ------------------ //
-
-// Home redirect
-app.get('/', (req, res) => res.redirect('/login'));
-
-// Registration
-app.get('/register', (req, res) => res.render('register'));
-app.post('/register', (req, res) => {
-  const { name, email, password, role, interests } = req.body;
-  if(!email.endsWith('@srec.ac.in')){
-    return res.send('Only SREC college emails allowed');
+  // Find matched users in same interest domain
+  let matchedUsers = [];
+  if (user.interests.length > 0) {
+    matchedUsers = users.filter(
+      (u) =>
+        u.email !== user.email &&
+        u.interests.some((i) => user.interests.includes(i))
+    );
   }
-  if(users.find(u=>u.email===email)) return res.send('User already exists');
 
-  const newUser = {
-    name, email, password, role,
-    interests: role==='senior' ? interests.split(',').map(i=>i.trim()) : [],
-    assignedMentors: [], assignedJuniors: []
-  };
-  users.push(newUser);
-  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
-  res.redirect('/login');
+  res.render("dashboard", { user, matchedUsers });
 });
 
-// Login
-app.get('/login', (req, res) => res.render('login'));
-app.post('/login', (req, res) => {
-  const { email, password } = req.body;
-  const user = users.find(u=>u.email===email && u.password===password);
-  if(!user) return res.send('Invalid credentials');
-  res.redirect(`/dashboard?email=${email}`);
-});
-
-// Dashboard
-app.get('/dashboard', (req, res) => {
-  const user = users.find(u=>u.email===req.query.email);
-  res.render('dashboard', { user, users });
-});
-
-// Select Interest (Junior)
-app.post('/select-interest', (req,res)=>{
+// Handle interest submission
+app.post("/set-interest", (req, res) => {
   const { email, interest } = req.body;
-  const user = users.find(u=>u.email===email);
-  if(!user) return res.send('User not found');
-  user.interests = [interest];
+  let users = loadUsers();
+  let user = users.find((u) => u.email === email);
 
-  // Assign senior automatically (first available senior with same interest)
-  const availableSenior = users.find(u=>u.role==='senior' && u.interests.includes(interest));
-  if(availableSenior){
-    user.assignedMentors.push(availableSenior.email);
-    availableSenior.assignedJuniors.push(user.email);
+  if (user) {
+    if (!user.interests.includes(interest)) {
+      user.interests.push(interest);
+      saveUsers(users);
 
-    // Send email notification to senior
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: availableSenior.email,
-      subject: `New Junior Assigned: ${user.name}`,
-      text: `Hello ${availableSenior.name}, a junior selected your domain (${interest}). Chat here: http://localhost:${process.env.PORT || 3000}/chat?junior=${user.email}&senior=${availableSenior.email}`
-    };
-    transporter.sendMail(mailOptions, (err, info)=>{
-      if(err) console.log(err);
-      else console.log('Email sent: ', info.response);
-    });
+      // Notify matching seniors by email
+      let seniors = users.filter(
+        (u) => u.role === "senior" && u.interests.includes(interest)
+      );
+
+      seniors.forEach((senior) => {
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: senior.email,
+          subject: "New Junior Interested in Your Domain",
+          text: `Hello ${senior.name}, a junior selected your domain (${interest}). 
+Chat with them here: https://your-domain.com/chat?junior=${email}&senior=${senior.email}&user=${senior.email}`,
+        };
+        transporter.sendMail(mailOptions, (err) => {
+          if (err) console.error("Email error:", err);
+        });
+      });
+    }
+  }
+  res.redirect("/dashboard?email=" + email);
+});
+
+// Chat page
+app.get("/chat", (req, res) => {
+  const { junior, senior, user } = req.query;
+  res.render("chat", { juniorEmail: junior, seniorEmail: senior, userEmail: user });
+});
+
+// ---------- Socket.io for chat ----------
+io.on("connection", (socket) => {
+  console.log("User connected");
+
+  socket.on("joinRoom", ({ junior, senior }) => {
+    const room = [junior, senior].sort().join("-");
+    socket.join(room);
+    socket.room = room;
+  });
+
+  socket.on("chatMessage", (data) => {
+    io.to(socket.room).emit("chatMessage", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
+});
+
+// ---------- Feedback routes ----------
+
+// Submit feedback
+app.post("/feedback", (req, res) => {
+  const feedbacksFile = path.join(__dirname, "feedbacks.json");
+  let feedbacks = [];
+
+  if (fs.existsSync(feedbacksFile)) {
+    feedbacks = JSON.parse(fs.readFileSync(feedbacksFile));
   }
 
-  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
-  res.redirect(`/dashboard?email=${email}`);
+  feedbacks.push(req.body); // { junior, senior, sender, rating, comments }
+  fs.writeFileSync(feedbacksFile, JSON.stringify(feedbacks, null, 2));
+
+  res.status(200).send("Feedback saved successfully");
 });
 
-// Edit Interests (Senior)
-app.post('/edit-interests', (req,res)=>{
-  const { email, interests } = req.body;
-  const user = users.find(u=>u.email===email);
-  if(!user) return res.send('User not found');
-  user.interests = interests.split(',').map(i=>i.trim());
-  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
-  res.redirect(`/dashboard?email=${email}`);
+// Feedback page (standalone)
+app.get("/feedback", (req, res) => {
+  const { junior, senior, user } = req.query;
+  if (!junior || !senior || !user) return res.send("Missing parameters.");
+  res.render("feedback", { juniorEmail: junior, seniorEmail: senior, userEmail: user });
 });
 
-// Feedback
-app.get('/feedback', (req,res)=>{
-  const { senior, junior } = req.query;
-  res.render('feedback', { seniorEmail: senior, juniorEmail: junior });
-});
-app.post('/submit-feedback', (req,res)=>{
-  const { seniorEmail, juniorEmail, rating, comments } = req.body;
-  feedbacks.push({ seniorEmail, juniorEmail, rating, comments });
-  fs.writeFileSync(feedbackFile, JSON.stringify(feedbacks, null, 2));
-  res.send('Thank you for your feedback!');
-});
-
-// ------------------ Socket.io ------------------ //
-io.on('connection', (socket)=>{
-  console.log('A user connected');
-
-  socket.on('joinRoom', (room)=>{
-    socket.join(room);
-
-    // Send previous messages for this room
-    const roomMessages = messages.filter(m=>m.room===room);
-    socket.emit('loadMessages', roomMessages);
-  });
-
-  socket.on('chatMessage', (data)=>{
-    messages.push(data);
-    fs.writeFileSync(messagesFile, JSON.stringify(messages, null, 2));
-    io.to(data.room).emit('chatMessage', data);
-  });
-
-  socket.on('disconnect', ()=> console.log('A user disconnected'));
-});
-
-// ------------------ Start Server ------------------ //
+// ---------- Server ----------
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, ()=> console.log(`Server running at http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
